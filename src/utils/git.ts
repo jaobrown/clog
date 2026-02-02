@@ -48,16 +48,16 @@ export function writeLatestJson(repoPath: string, data: object): void {
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 }
 
-export function writeReadme(repoPath: string, username: string): void {
-  const readme = `# ${username}'s Claude Code Stats
+export function readReadme(repoPath: string): string | null {
+  const readmePath = path.join(repoPath, "README.md");
+  if (fs.existsSync(readmePath)) {
+    return fs.readFileSync(readmePath, "utf-8");
+  }
+  return null;
+}
 
-![clog](https://img.shields.io/badge/clog-leaderboard-blue)
-
-Stats tracked with [clog-cli](https://github.com/your-org/clog-cli).
-
-View the leaderboard at [clog.dev](https://clog.dev) (coming soon).
-`;
-  fs.writeFileSync(path.join(repoPath, "README.md"), readme);
+export function writeReadme(repoPath: string, content: string): void {
+  fs.writeFileSync(path.join(repoPath, "README.md"), content);
 }
 
 export function writeGitkeep(repoPath: string): void {

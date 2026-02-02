@@ -7,6 +7,7 @@ import ora from "ora";
 import inquirer from "inquirer";
 import { configExists, writeConfig, readConfig } from "../utils/config.js";
 import { writeReadme, writeGitkeep } from "../utils/git.js";
+import { generateReadme } from "../output/readme.js";
 import { runSync } from "./sync.js";
 
 function checkGhCli(): boolean {
@@ -143,7 +144,12 @@ export async function runInit(): Promise<void> {
 
     // Create initial files
     spinner.start("Creating initial files...");
-    writeReadme(repoPath, username);
+    const initialReadme = generateReadme(
+      username,
+      { totalSessions: 0, totalDurationMs: 0, totalTokens: 0, projectCount: 0 },
+      []
+    );
+    writeReadme(repoPath, initialReadme);
     writeGitkeep(repoPath);
     spinner.succeed("Created initial files");
 
