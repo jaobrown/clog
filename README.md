@@ -4,12 +4,6 @@ Track and share your Claude Code usage.
 
 clog parses your local Claude Code sessions and gives you stats on sessions, duration, tokens, and projects. Optionally sync to a public GitHub repo to share your coding activity.
 
-## Installation
-
-```bash
-npm install -g @jaobrown/clog
-```
-
 ## Requirements
 
 - Node.js 18+
@@ -20,9 +14,9 @@ npm install -g @jaobrown/clog
 ### View local stats
 
 ```bash
-clog
+npx @jaobrown/clog
 # or
-clog stats
+npx @jaobrown/clog stats
 ```
 
 Shows a summary of your Claude Code usage:
@@ -34,7 +28,7 @@ Shows a summary of your Claude Code usage:
 ### Initialize GitHub sync
 
 ```bash
-clog init
+npx @jaobrown/clog init
 ```
 
 Creates a public GitHub repository to sync your stats. You'll be prompted for:
@@ -45,7 +39,7 @@ Creates a public GitHub repository to sync your stats. You'll be prompted for:
 ### Sync to GitHub
 
 ```bash
-clog sync
+npx @jaobrown/clog sync
 ```
 
 Parses your sessions and pushes updated stats to your GitHub repo. The repo includes:

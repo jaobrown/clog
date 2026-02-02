@@ -8,13 +8,13 @@ import { formatDuration, formatNumber } from "../utils/format.js";
 
 export async function runSync(): Promise<void> {
   if (!configExists()) {
-    console.log(chalk.red("Not initialized. Run: clog init"));
+    console.log(chalk.red("Not initialized. Run: npx @jaobrown/clog init"));
     process.exit(1);
   }
 
   const config = readConfig();
   if (!config) {
-    console.log(chalk.red("Could not read config. Run: clog init"));
+    console.log(chalk.red("Could not read config. Run: npx @jaobrown/clog init"));
     process.exit(1);
   }
 
