@@ -48,14 +48,6 @@ export function writeLatestJson(repoPath: string, data: object): void {
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 }
 
-export function readReadme(repoPath: string): string | null {
-  const readmePath = path.join(repoPath, "README.md");
-  if (fs.existsSync(readmePath)) {
-    return fs.readFileSync(readmePath, "utf-8");
-  }
-  return null;
-}
-
 export function writeReadme(repoPath: string, content: string): void {
   fs.writeFileSync(path.join(repoPath, "README.md"), content);
 }
