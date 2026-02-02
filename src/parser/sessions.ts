@@ -114,9 +114,26 @@ function parseSessionFile(filePath: string): Omit<RawSession, "subagents"> | nul
   }
 }
 
+/**
+ * Extract parent session ID from an agent file by reading its sessionId field.
+ * Agent files store their parent's session ID in the first line.
+ */
+function getParentSessionId(agentFilePath: string): string | null {
+  try {
+    const content = fs.readFileSync(agentFilePath, "utf-8");
+    const firstLine = content.split("\n")[0];
+    if (!firstLine) return null;
+    const parsed = JSON.parse(firstLine);
+    return parsed.sessionId || null;
+  } catch {
+    return null;
+  }
+}
+
 function parseSessionWithSubagents(
   sessionFile: string,
-  sessionDir?: string
+  sessionDir?: string,
+  additionalAgentPaths?: string[]
 ): RawSession | null {
   const baseSession = parseSessionFile(sessionFile);
   if (!baseSession) return null;
@@ -137,6 +154,16 @@ function parseSessionWithSubagents(
     for (const subFile of subagentFiles) {
       const subPath = path.join(subagentsDir, subFile);
       const subSession = parseSessionWithSubagents(subPath);
+      if (subSession) {
+        subagents.push(subSession);
+      }
+    }
+  }
+
+  // Parse additional orphaned agent files (top-level agents referencing this session)
+  if (additionalAgentPaths) {
+    for (const agentPath of additionalAgentPaths) {
+      const subSession = parseSessionWithSubagents(agentPath);
       if (subSession) {
         subagents.push(subSession);
       }
@@ -205,19 +232,44 @@ export function parseAllProjects(): Project[] {
     // Skip hidden directories
     if (projectDir.startsWith(".")) continue;
 
-    // Find top-level session files
+    // Find top-level session files and separate agent files from regular sessions
     const items = fs.readdirSync(projectDirPath);
-    const sessionFiles = items.filter(
+
+    // Agent files are orphaned sub-agents stored at top level (agent-*.jsonl)
+    const agentFiles = items.filter(
       (item) =>
+        item.startsWith("agent-") &&
         item.endsWith(".jsonl") &&
         fs.statSync(path.join(projectDirPath, item)).isFile()
     );
+
+    // Regular session files (not agent files)
+    const sessionFiles = items.filter(
+      (item) =>
+        !item.startsWith("agent-") &&
+        item.endsWith(".jsonl") &&
+        fs.statSync(path.join(projectDirPath, item)).isFile()
+    );
+
+    // Group agent files by their parent session ID
+    const agentsByParent = new Map<string, string[]>();
+    for (const agentFile of agentFiles) {
+      const agentPath = path.join(projectDirPath, agentFile);
+      const parentId = getParentSessionId(agentPath);
+      if (parentId) {
+        const existing = agentsByParent.get(parentId) || [];
+        existing.push(agentPath);
+        agentsByParent.set(parentId, existing);
+      }
+    }
 
     const rawSessions: RawSession[] = [];
 
     for (const sessionFile of sessionFiles) {
       const sessionPath = path.join(projectDirPath, sessionFile);
-      const rawSession = parseSessionWithSubagents(sessionPath);
+      const sessionId = path.basename(sessionFile, ".jsonl");
+      const orphanedAgents = agentsByParent.get(sessionId) || [];
+      const rawSession = parseSessionWithSubagents(sessionPath, undefined, orphanedAgents);
       if (rawSession) {
         rawSessions.push(rawSession);
       }
