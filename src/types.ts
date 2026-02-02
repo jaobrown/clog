@@ -49,6 +49,7 @@ export interface OutputData {
 
 export interface Config {
   username: string;
+  repoName: string;
   repoPath: string;
   createdAt: string;
 }

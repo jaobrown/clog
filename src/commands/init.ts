@@ -81,6 +81,18 @@ export async function runInit(): Promise<void> {
     },
   ]);
 
+  // Get repo name
+  const { repoName } = await inquirer.prompt<{ repoName: string }>([
+    {
+      type: "input",
+      name: "repoName",
+      message: "Repository name:",
+      default: "clog",
+      validate: (input: string) =>
+        /^[a-zA-Z0-9._-]+$/.test(input.trim()) || "Invalid repository name",
+    },
+  ]);
+
   const defaultRepoPath = path.join(os.homedir(), ".clog", "repo");
 
   const { repoPath } = await inquirer.prompt<{ repoPath: string }>([
@@ -92,7 +104,6 @@ export async function runInit(): Promise<void> {
     },
   ]);
 
-  const repoName = "clog";
   const fullRepoName = `${username}/${repoName}`;
 
   // Create repo
@@ -168,6 +179,7 @@ export async function runInit(): Promise<void> {
     // Save config
     writeConfig({
       username,
+      repoName,
       repoPath,
       createdAt: new Date().toISOString(),
     });
