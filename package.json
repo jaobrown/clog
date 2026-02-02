@@ -1,0 +1,33 @@
+{
+  "name": "clog-cli",
+  "version": "0.1.0",
+  "description": "Track and share your Claude Code usage",
+  "type": "module",
+  "bin": {
+    "clog": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "boxen": "^8.0.1",
+    "chalk": "^5.4.1",
+    "commander": "^13.1.0",
+    "inquirer": "^12.3.2",
+    "ora": "^8.1.1",
+    "simple-git": "^3.27.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.12.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
