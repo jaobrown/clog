@@ -1,6 +1,6 @@
 {
   "name": "@jaobrown/clog",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Track and share your Claude Code usage",
   "type": "module",
   "author": "Jared Brown <jared@jared.to>",
