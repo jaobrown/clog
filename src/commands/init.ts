@@ -158,6 +158,7 @@ export async function runInit(): Promise<void> {
     const initialReadme = generateReadme(
       username,
       { totalSessions: 0, totalDurationMs: 0, totalTokens: 0, projectCount: 0 },
+      [],
       []
     );
     writeReadme(repoPath, initialReadme);

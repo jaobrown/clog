@@ -2,7 +2,7 @@ import chalk from "chalk";
 import ora from "ora";
 import { readConfig, configExists } from "../utils/config.js";
 import { generateOutputData } from "../output/generator.js";
-import { generateReadme, updateReadme, getRecentSessions } from "../output/readme.js";
+import { generateReadme, updateReadme, getRecentSessions, getTopProjects } from "../output/readme.js";
 import { writeLatestJson, commitAndPush, hasChanges, readReadme, writeReadme } from "../utils/git.js";
 import { formatDuration, formatNumber } from "../utils/format.js";
 
@@ -30,6 +30,7 @@ export async function runSync(): Promise<void> {
     // Update README with stats
     spinner.text = "Updating README...";
     const recentSessions = getRecentSessions(data.projects, 5);
+    const topProjects = getTopProjects(data.projects, 5);
     const existingReadme = readReadme(config.repoPath);
 
     if (existingReadme && existingReadme.includes("<!-- CLOG_STATS_START -->")) {
@@ -37,14 +38,16 @@ export async function runSync(): Promise<void> {
         existingReadme,
         config.username,
         data.summary,
-        recentSessions
+        recentSessions,
+        topProjects
       );
       writeReadme(config.repoPath, updatedReadme);
     } else {
       const newReadme = generateReadme(
         config.username,
         data.summary,
-        recentSessions
+        recentSessions,
+        topProjects
       );
       writeReadme(config.repoPath, newReadme);
     }
