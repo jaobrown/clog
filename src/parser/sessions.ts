@@ -65,10 +65,16 @@ function parseSessionFile(filePath: string): Omit<RawSession, "subagents"> | nul
     const summaryLine = lines.find((l) => l.type === "summary");
     const title = summaryLine?.summary || null;
 
-    // Extract duration (sum all turn_duration entries)
-    const durationMs = lines
-      .filter((l) => l.subtype === "turn_duration")
-      .reduce((sum, l) => sum + (l.durationMs || 0), 0);
+    // Extract duration (elapsed time from first to last message)
+    const timestamps = lines
+      .filter((l) => l.timestamp)
+      .map((l) => new Date(l.timestamp!).getTime())
+      .filter((t) => !isNaN(t));
+
+    const durationMs =
+      timestamps.length >= 2
+        ? Math.max(...timestamps) - Math.min(...timestamps)
+        : 0;
 
     // Get metadata from first user message
     const firstUserMsg = lines.find(
