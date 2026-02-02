@@ -1,5 +1,5 @@
 {
-  "name": "clog-cli",
+  "name": "clog",
   "version": "0.1.0",
   "description": "Track and share your Claude Code usage",
   "type": "module",
