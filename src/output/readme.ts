@@ -1,4 +1,5 @@
 import type { Summary, Session, Project } from "../types.js";
+import { getTotalTokenCount } from "../utils/tokens.js";
 
 interface RecentSession {
   timestamp: string;
@@ -133,11 +134,7 @@ export function getRecentSessions(projects: Project[], limit: number = 5): Recen
 
   for (const project of projects) {
     for (const session of project.sessions) {
-      const totalTokens =
-        session.totalTokens.inputTokens +
-        session.totalTokens.outputTokens +
-        session.totalTokens.cacheReadTokens +
-        session.totalTokens.cacheCreationTokens;
+      const totalTokens = getTotalTokenCount(session.totalTokens);
 
       allSessions.push({
         timestamp: session.timestamp,
