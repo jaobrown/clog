@@ -16,6 +16,8 @@ export interface Session {
   tokens: TokenUsage;
   totalTokens: TokenUsage;
   subagentCount: number;
+  toolUsage?: Record<string, number>;
+  messageCount?: number;
 }
 
 export interface Project {
@@ -39,12 +41,21 @@ export interface ActivityDay {
   durationMs: number;
 }
 
+export interface ModelBreakdown {
+  inputTokens: number;
+  outputTokens: number;
+  cacheTokens: number;
+}
+
 export interface OutputData {
   generatedAt: string;
   username: string;
   summary: Summary;
   projects: Project[];
   activity: Record<string, ActivityDay>;
+  modelBreakdown?: Record<string, ModelBreakdown>;
+  peakHours?: number[];
+  currentStreak?: number;
 }
 
 export interface Config {

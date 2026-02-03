@@ -1,6 +1,12 @@
-import type { Project, OutputData, Summary, ActivityDay } from "../types.js";
+import type { OutputData, Summary, ActivityDay } from "../types.js";
 import { parseAllProjects, getTotalTokenCount } from "../parser/sessions.js";
 import { formatDate } from "../utils/format.js";
+import {
+  readStatsCache,
+  getModelBreakdown,
+  getPeakHours,
+  getCurrentStreak,
+} from "../parser/stats-cache.js";
 
 export function generateOutputData(username: string): OutputData {
   const projects = parseAllProjects();
@@ -37,11 +43,22 @@ export function generateOutputData(username: string): OutputData {
     }
   }
 
-  return {
+  // Read stats cache for additional data
+  const statsCache = readStatsCache();
+
+  const outputData: OutputData = {
     generatedAt: new Date().toISOString(),
     username,
     summary,
     projects,
     activity,
   };
+
+  if (statsCache) {
+    outputData.modelBreakdown = getModelBreakdown(statsCache);
+    outputData.peakHours = getPeakHours(statsCache);
+    outputData.currentStreak = getCurrentStreak(statsCache);
+  }
+
+  return outputData;
 }

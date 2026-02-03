@@ -35,7 +35,10 @@ export async function runSync(): Promise<void> {
       config.username,
       data.summary,
       recentSessions,
-      topProjects
+      topProjects,
+      data.modelBreakdown,
+      data.peakHours,
+      data.currentStreak
     );
     writeReadme(config.repoPath, readme);
 
