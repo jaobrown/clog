@@ -63,4 +63,5 @@ export interface Config {
   repoName: string;
   repoPath: string;
   createdAt: string;
+  redactedProjects: string[];
 }

@@ -6,6 +6,7 @@ import chalk from "chalk";
 import ora from "ora";
 import inquirer from "inquirer";
 import { configExists, writeConfig, readConfig } from "../utils/config.js";
+import { normalizeRedactionPath } from "../utils/redaction.js";
 import { writeReadme, writeGitkeep } from "../utils/git.js";
 import { generateReadme } from "../output/readme.js";
 import { runSync } from "./sync.js";
@@ -104,6 +105,32 @@ export async function runInit(): Promise<void> {
     },
   ]);
 
+  const { wantsRedaction } = await inquirer.prompt<{ wantsRedaction: boolean }>([
+    {
+      type: "confirm",
+      name: "wantsRedaction",
+      message: "Do you want to redact any project directories?",
+      default: false,
+    },
+  ]);
+
+  let redactedProjects: string[] = [];
+  if (wantsRedaction) {
+    const { redactionInput } = await inquirer.prompt<{ redactionInput: string }>([
+      {
+        type: "input",
+        name: "redactionInput",
+        message: "Enter directories to redact (comma-separated):",
+      },
+    ]);
+
+    redactedProjects = redactionInput
+      .split(",")
+      .map((entry) => entry.trim())
+      .filter((entry) => entry.length > 0)
+      .map((entry) => normalizeRedactionPath(entry));
+  }
+
   const fullRepoName = `${username}/${repoName}`;
 
   // Create repo
@@ -183,6 +210,7 @@ export async function runInit(): Promise<void> {
       repoName,
       repoPath,
       createdAt: new Date().toISOString(),
+      redactedProjects,
     });
 
     console.log(chalk.green("\nInitialization complete!"));

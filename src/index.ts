@@ -2,6 +2,7 @@ import { Command } from "commander";
 import { runInit } from "./commands/init.js";
 import { runSync } from "./commands/sync.js";
 import { runStats } from "./commands/stats.js";
+import { runRedact } from "./commands/redact.js";
 
 const program = new Command();
 
@@ -24,6 +25,11 @@ program
   .command("stats")
   .description("Display usage statistics")
   .action(runStats);
+
+program
+  .command("redact [path]")
+  .description("Mark a directory as redacted")
+  .action(runRedact);
 
 // Default command: show stats
 program.action(runStats);

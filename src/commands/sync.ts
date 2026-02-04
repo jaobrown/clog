@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import ora from "ora";
-import { readConfig, configExists } from "../utils/config.js";
+import { readConfigWithDefaults, configExists } from "../utils/config.js";
 import { generateOutputData } from "../output/generator.js";
 import { generateReadme, getRecentSessions, getTopProjects } from "../output/readme.js";
 import { writeLatestJson, commitAndPush, hasChanges, writeReadme } from "../utils/git.js";
@@ -12,7 +12,7 @@ export async function runSync(): Promise<void> {
     process.exit(1);
   }
 
-  const config = readConfig();
+  const config = readConfigWithDefaults();
   if (!config) {
     console.log(chalk.red("Could not read config. Run: npx @jaobrown/clog init"));
     process.exit(1);
@@ -22,7 +22,7 @@ export async function runSync(): Promise<void> {
 
   try {
     // Generate output data
-    const data = generateOutputData(config.username);
+    const data = generateOutputData(config.username, config.redactedProjects);
 
     spinner.text = "Writing latest.json...";
     writeLatestJson(config.repoPath, data);

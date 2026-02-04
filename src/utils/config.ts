@@ -25,6 +25,21 @@ export function readConfig(): Config | null {
   }
 }
 
+export function normalizeConfig(config: Config): Config {
+  return {
+    ...config,
+    redactedProjects: Array.isArray(config.redactedProjects)
+      ? config.redactedProjects
+      : [],
+  };
+}
+
+export function readConfigWithDefaults(): Config | null {
+  const config = readConfig();
+  if (!config) return null;
+  return normalizeConfig(config);
+}
+
 export function writeConfig(config: Config): void {
   const dir = path.dirname(CONFIG_PATH);
   if (!fs.existsSync(dir)) {

@@ -3,6 +3,8 @@ import boxen from "boxen";
 import { parseAllProjects } from "../parser/sessions.js";
 import { formatDuration, formatNumber, formatRelativeDate } from "../utils/format.js";
 import { emptyTokens, addTokens, getTotalTokenCount } from "../utils/tokens.js";
+import { readConfigWithDefaults } from "../utils/config.js";
+import { applyRedactions } from "../utils/redaction.js";
 import type { Project, Session } from "../types.js";
 
 function getDateKey(date: Date): string {
@@ -52,7 +54,11 @@ function renderBar(value: number, maxValue: number, width: number): string {
 }
 
 export async function runStats(): Promise<void> {
-  const projects = parseAllProjects();
+  const config = readConfigWithDefaults();
+  const projects = applyRedactions(
+    parseAllProjects(),
+    config?.redactedProjects ?? []
+  );
 
   if (projects.length === 0) {
     console.log(chalk.yellow("\nNo sessions found.\n"));

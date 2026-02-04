@@ -1,6 +1,7 @@
 import type { OutputData, Summary, ActivityDay } from "../types.js";
 import { parseAllProjects, getTotalTokenCount } from "../parser/sessions.js";
 import { formatDate } from "../utils/format.js";
+import { applyRedactions } from "../utils/redaction.js";
 import {
   readStatsCache,
   getModelBreakdown,
@@ -8,8 +9,11 @@ import {
   getCurrentStreak,
 } from "../parser/stats-cache.js";
 
-export function generateOutputData(username: string): OutputData {
-  const projects = parseAllProjects();
+export function generateOutputData(
+  username: string,
+  redactedProjects: string[] = []
+): OutputData {
+  const projects = applyRedactions(parseAllProjects(), redactedProjects);
 
   // Calculate summary
   let totalSessions = 0;
