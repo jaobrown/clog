@@ -46,6 +46,20 @@ Parses your sessions and pushes updated stats to your GitHub repo. The repo incl
 - `data/latest.json` - Full session data
 - `README.md` - Formatted stats display
 
+### Redact sensitive projects
+
+```bash
+npx @jaobrown/clog redact [path]
+
+# Examples: `npx @jaobrown redact my-app` or `npx @jaobrown redact /Users/you/code/my-app`
+```
+
+Marks a directory as redacted (defaults to the current directory). Redacted projects still count toward totals, but their project name and session titles are hidden:
+- Project name: `top secret`
+- Session title: `**********`
+
+Tip: Redaction matches by full path, project name, or basename. If you used a path under `~/.claude/projects/`, use the real project directory (for example `/Users/you/code/my-app`) or just the project name (`npx @jaobrown redact my-app`).
+
 ## How it works
 
 clog reads Claude Code session files from `~/.claude/projects/`. Each session includes:
@@ -60,6 +74,11 @@ clog reads Claude Code session files from `~/.claude/projects/`. Each session in
 - **Claude Code sessions**: `~/.claude/projects/`
 - **clog config**: `~/.claude/clog.json`
 - **Sync repo** (default): `~/.clog/repo/`
+
+## FAQ
+
+**Can I redact sensitive data?**  
+Yes. Use `npx @jaobrown/clog redact [path]` to hide a project’s name and session titles in `clog stats`, the README, and `latest.json`. You can redact as many projects as you need.
 
 ## License
 
