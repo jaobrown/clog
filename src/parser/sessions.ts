@@ -286,6 +286,27 @@ function parseProjectFromIndex(
     });
   }
 
+  // If sessions-index.json is stale, pick up any new top-level sessions
+  // that are not in the index (Claude Code stopped updating the index
+  // in some recent builds).
+  const indexedSessionIds = new Set(mainSessions.map((entry) => entry.sessionId));
+  const sessionFiles = items.filter(
+    (item) =>
+      !item.startsWith("agent-") &&
+      item.endsWith(".jsonl") &&
+      fs.statSync(path.join(projectDirPath, item)).isFile()
+  );
+
+  for (const sessionFile of sessionFiles) {
+    const sessionId = path.basename(sessionFile, ".jsonl");
+    if (indexedSessionIds.has(sessionId)) continue;
+    const sessionPath = path.join(projectDirPath, sessionFile);
+    const extra = parseMissingSession(sessionPath, sessionId, agentsByParent);
+    if (extra) {
+      aggregatedSessions.push(extra);
+    }
+  }
+
   if (aggregatedSessions.length === 0) return null;
 
   // Sort by timestamp to find most recent
@@ -339,6 +360,131 @@ function parseProjectFromIndex(
     totalTokens,
     sessions,
   };
+}
+
+function parseMissingSession(
+  sessionPath: string,
+  sessionId: string,
+  agentsByParent: Map<string, string[]>
+): AggregatedSession | null {
+  try {
+    const content = fs.readFileSync(sessionPath, "utf-8");
+    const lines = content
+      .split("\n")
+      .filter((l) => l.trim())
+      .map((l) => {
+        try {
+          return JSON.parse(l) as ParsedLine;
+        } catch {
+          return null;
+        }
+      })
+      .filter((l): l is ParsedLine => l !== null);
+
+    if (lines.length === 0) return null;
+
+    const summaryLine = lines.find((l) => l.type === "summary");
+    const title = summaryLine?.summary || "(no title)";
+
+    const timestamps = lines
+      .filter((l) => l.timestamp)
+      .map((l) => new Date(l.timestamp!).getTime())
+      .filter((t) => !isNaN(t));
+
+    const durationMs =
+      timestamps.length >= 2
+        ? Math.max(...timestamps) - Math.min(...timestamps)
+        : 0;
+
+    const firstUserMsg = lines.find(
+      (l) => l.message?.role === "user" && l.timestamp
+    );
+    const rawTimestamp = firstUserMsg?.timestamp || "";
+    const fileMtime = fs.statSync(sessionPath).mtime.toISOString();
+    const timestamp =
+      rawTimestamp && !Number.isNaN(Date.parse(rawTimestamp))
+        ? rawTimestamp
+        : fileMtime;
+    const gitBranch = firstUserMsg?.gitBranch || null;
+
+    const firstAssistantMsg = lines.find((l) => l.message?.role === "assistant");
+    const model = firstAssistantMsg?.message?.model || null;
+    const cwd = firstUserMsg?.cwd || null;
+
+    const tokens = emptyTokens();
+    const toolUsage: Record<string, number> = {};
+    let messageCount = 0;
+
+    for (const line of lines) {
+      if (line.message) messageCount += 1;
+      const usage = line.message?.usage || line.usage;
+      if (line.message?.role === "assistant" && usage) {
+        tokens.inputTokens += usage.input_tokens || 0;
+        tokens.outputTokens += usage.output_tokens || 0;
+        tokens.cacheReadTokens += usage.cache_read_input_tokens || 0;
+        tokens.cacheCreationTokens += usage.cache_creation_input_tokens || 0;
+      }
+
+      if (line.message?.role === "assistant" && line.message.content) {
+        for (const block of line.message.content) {
+          if (block.type === "tool_use" && block.name) {
+            toolUsage[block.name] = (toolUsage[block.name] || 0) + 1;
+          }
+        }
+      }
+    }
+
+    // Aggregate subagents
+    let subagentTokens = emptyTokens();
+    let subagentDurationMs = 0;
+    let subagentCount = 0;
+
+    const sessionDir = sessionPath.replace(".jsonl", "");
+    const subagentsDir = path.join(sessionDir, "subagents");
+
+    if (fs.existsSync(subagentsDir) && fs.statSync(subagentsDir).isDirectory()) {
+      const subData = aggregateSubagents(subagentsDir);
+      subagentTokens = addTokens(subagentTokens, subData.tokens);
+      subagentDurationMs += subData.durationMs;
+      subagentCount += subData.count;
+
+      for (const [tool, count] of Object.entries(subData.toolUsage)) {
+        toolUsage[tool] = (toolUsage[tool] || 0) + count;
+      }
+    }
+
+    const orphanedAgents = agentsByParent.get(sessionId) || [];
+    for (const agentPath of orphanedAgents) {
+      const agentData = parseSessionTokens(agentPath);
+      if (agentData) {
+        subagentTokens = addTokens(subagentTokens, agentData.tokens);
+        subagentDurationMs += agentData.durationMs;
+        subagentCount++;
+
+        for (const [tool, count] of Object.entries(agentData.toolUsage)) {
+          toolUsage[tool] = (toolUsage[tool] || 0) + count;
+        }
+      }
+    }
+
+    return {
+      id: sessionId,
+      title,
+      timestamp,
+      durationMs,
+      gitBranch,
+      model,
+      tokens,
+      toolUsage,
+      messageCount,
+      cwd,
+      subagentTokens,
+      subagentDurationMs,
+      subagentCount,
+    };
+  } catch {
+    return null;
+  }
 }
 
 function aggregateSubagents(subagentsDir: string): {
