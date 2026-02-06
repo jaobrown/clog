@@ -10,6 +10,10 @@ import { normalizeRedactionPath } from "../utils/redaction.js";
 import { writeReadme, writeGitkeep } from "../utils/git.js";
 import { generateReadme } from "../output/readme.js";
 import { runSync } from "./sync.js";
+import { fetchUserRank, syncProfileToConvex } from "../utils/api.js";
+import { renderBadge } from "../output/badge.js";
+import { copyToClipboard } from "../utils/clipboard.js";
+import { generateOutputData } from "../output/generator.js";
 
 function checkGhCli(): boolean {
   try {
@@ -77,8 +81,13 @@ export async function runInit(): Promise<void> {
       type: "input",
       name: "username",
       message: "GitHub username:",
-      validate: (input: string) =>
-        input.trim().length > 0 || "Username is required",
+      validate: (input: string) => {
+        const trimmed = input.trim();
+        if (trimmed.length === 0) return "Username is required";
+        if (!/^[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?$/.test(trimmed))
+          return "Invalid GitHub username (letters, numbers, and hyphens only)";
+        return true;
+      },
     },
   ]);
 
@@ -213,15 +222,122 @@ export async function runInit(): Promise<void> {
       redactedProjects,
     });
 
-    console.log(chalk.green("\nInitialization complete!"));
-    console.log(chalk.dim(`Config saved to ~/.claude/clog.json`));
+    console.log(chalk.green("\n✓ Initialization complete!"));
+    console.log(chalk.dim(`  Config saved to ~/.claude/clog.json`));
     console.log(
-      chalk.dim(`Repository: https://github.com/${fullRepoName}\n`)
+      chalk.dim(`  Repository: https://github.com/${fullRepoName}\n`)
     );
 
-    // Run first sync
+    // Run first sync (pushes data to GitHub)
     console.log(chalk.bold("Running first sync...\n"));
     await runSync();
+
+    // Sync profile directly to Convex so it's immediately available
+    const syncSpinner = ora("Syncing profile to leaderboard...").start();
+    const data = generateOutputData(username, redactedProjects);
+
+    // Calculate weekly stats
+    const now = new Date();
+    const day = now.getUTCDay();
+    const diff = now.getUTCDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(now);
+    monday.setUTCDate(diff);
+    const weekStart = monday.toISOString().split("T")[0];
+
+    // Calculate weekly duration from activity data
+    const startDate = new Date(weekStart + "T00:00:00Z");
+    const endDate = new Date(startDate);
+    endDate.setUTCDate(endDate.getUTCDate() + 7);
+
+    let weeklyDurationMs = 0;
+    let weeklySessionCount = 0;
+    for (const [dateStr, dayData] of Object.entries(data.activity)) {
+      const date = new Date(dateStr + "T00:00:00Z");
+      if (date >= startDate && date < endDate) {
+        weeklyDurationMs += dayData.durationMs;
+        weeklySessionCount += dayData.sessions;
+      }
+    }
+
+    // Calculate streak info from activity
+    const activityDates = Object.keys(data.activity)
+      .filter((d) => data.activity[d].sessions > 0)
+      .sort();
+    const lastActiveDate =
+      activityDates.length > 0
+        ? activityDates[activityDates.length - 1]
+        : "";
+    const currentStreak = data.currentStreak ?? 0;
+
+    const avatarUrl = `https://github.com/${username}.png`;
+    const repoUrl = `https://github.com/${fullRepoName}`;
+
+    const synced = await syncProfileToConvex({
+      username,
+      avatarUrl,
+      repoUrl,
+      totalSessions: data.summary.totalSessions,
+      totalDurationMs: data.summary.totalDurationMs,
+      totalTokens: data.summary.totalTokens,
+      projectCount: data.summary.projectCount,
+      weeklyDurationMs,
+      weeklySessionCount,
+      weekStart,
+      currentStreak,
+      longestStreak: currentStreak,
+      lastActiveDate,
+      latestData: data,
+    });
+
+    if (synced) {
+      syncSpinner.succeed("Profile synced to leaderboard");
+    } else {
+      syncSpinner.warn("Could not sync to leaderboard (will sync on next cron)");
+    }
+
+    // Brief wait for Convex mutation to commit before querying rank
+    if (synced) {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+    }
+
+    // Fetch leaderboard rank
+    const rankData = await fetchUserRank(username);
+
+    // Show celebration badge
+    console.log("");
+    console.log(
+      renderBadge({
+        username,
+        rankData,
+        localStats: {
+          totalSessions: data.summary.totalSessions,
+          totalDurationMs: data.summary.totalDurationMs,
+          currentStreak,
+        },
+      })
+    );
+
+    // Offer to copy profile URL
+    const profileUrl = `https://clog.sh/u/${username}`;
+    const { copyUrl } = await inquirer.prompt<{ copyUrl: boolean }>([
+      {
+        type: "confirm",
+        name: "copyUrl",
+        message: "Copy profile URL to clipboard?",
+        default: true,
+      },
+    ]);
+
+    if (copyUrl) {
+      const copied = copyToClipboard(profileUrl);
+      if (copied) {
+        console.log(chalk.green("✓ Copied to clipboard!"));
+      } else {
+        console.log(chalk.dim(`Share your profile: ${profileUrl}`));
+      }
+    }
+
+    console.log("");
   } catch (error) {
     spinner.fail("Initialization failed");
     const message = error instanceof Error ? error.message : String(error);
