@@ -318,7 +318,7 @@ export async function runInit(): Promise<void> {
     );
 
     // Offer to copy profile URL
-    const profileUrl = `https://clog.sh/u/${username}`;
+    const profileUrl = `https://clog.sh/u/${username}?share=true`;
     const { copyUrl } = await inquirer.prompt<{ copyUrl: boolean }>([
       {
         type: "confirm",

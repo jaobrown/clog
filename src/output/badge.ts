@@ -23,7 +23,7 @@ export interface BadgeOptions {
 
 export function renderBadge(options: BadgeOptions): string {
   const { username, rankData, localStats } = options;
-  const profileUrl = `https://clog.sh/u/${username}`;
+  const profileUrl = `https://clog.sh/u/${username}?share=true`;
 
   const header = chalk.cyan(CLOG_ASCII);
 
