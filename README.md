@@ -7,16 +7,16 @@
  ╚═════╝╚══════╝ ╚═════╝  ╚═════╝
 ```
 
-# clog
-
 Track and share your Claude Code usage.
 
-clog parses your local Claude Code sessions and gives you stats on sessions, duration, tokens, and projects. Optionally sync to a public GitHub repo to share your coding activity.
+Clog parses your local Claude Code sessions and gives you stats on sessions, duration, tokens, and projects. Optionally sync to a public GitHub repo to share your coding activity.
+
+
 
 ## Requirements
 
 - Node.js 18+
-- [GitHub CLI](https://cli.github.com/) (`gh`) - for GitHub sync features
+- [GitHub CLI](https://cli.github.com/) (`gh`) - for GitHub sync; required for [profile + leaderboard](https://clog.sh)
 
 ## Usage
 
