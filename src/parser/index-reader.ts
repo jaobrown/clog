@@ -5,8 +5,9 @@ export interface SessionIndexEntry {
   sessionId: string;
   fullPath: string;
   fileMtime: number;
-  firstPrompt: string;
-  summary: string;
+  firstPrompt?: string;
+  summary?: string;
+  customTitle?: string;
   messageCount: number;
   created: string;
   modified: string;

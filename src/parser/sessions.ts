@@ -17,7 +17,14 @@ interface ParsedLine {
   message?: {
     role?: string;
     model?: string;
-    content?: Array<{ type?: string; name?: string }>;
+    content?:
+      | string
+      | Array<{
+          type?: string;
+          name?: string;
+          text?: string;
+          content?: string;
+        }>;
     usage?: {
       input_tokens?: number;
       output_tokens?: number;
@@ -100,7 +107,10 @@ function parseSessionTokens(filePath: string): SessionTokenData | null {
       }
 
       // Count tool usage from assistant message content
-      if (line.message?.role === "assistant" && line.message.content) {
+      if (
+        line.message?.role === "assistant" &&
+        Array.isArray(line.message.content)
+      ) {
         for (const block of line.message.content) {
           if (block.type === "tool_use" && block.name) {
             toolUsage[block.name] = (toolUsage[block.name] || 0) + 1;
@@ -128,6 +138,117 @@ function getParentSessionId(agentFilePath: string): string | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Extract readable text from Claude message content blocks.
+ */
+function getMessageText(content: unknown): string {
+  if (typeof content === "string") {
+    return content;
+  }
+
+  if (!Array.isArray(content)) {
+    return "";
+  }
+
+  const parts: string[] = [];
+  for (const block of content) {
+    if (typeof block === "string") {
+      parts.push(block);
+      continue;
+    }
+
+    if (!block || typeof block !== "object") {
+      continue;
+    }
+
+    const value = block as { text?: unknown; content?: unknown };
+    if (typeof value.text === "string") {
+      parts.push(value.text);
+      continue;
+    }
+
+    if (typeof value.content === "string") {
+      parts.push(value.content);
+    }
+  }
+
+  return parts.join("\n");
+}
+
+function extractCommandName(text: string): string | null {
+  if (!text) return null;
+
+  const tagged = text.match(/<command-name>\s*([^<\n]+)\s*<\/command-name>/i);
+  if (tagged?.[1]) {
+    return tagged[1].trim();
+  }
+
+  return null;
+}
+
+function isAgentTeamCommand(commandName: string): boolean {
+  const normalized = commandName.toLowerCase();
+  return (
+    normalized.includes("team") ||
+    normalized.includes("feature-dev") ||
+    normalized.includes("agent-dev")
+  );
+}
+
+function deriveCommandTitle(commandName: string): string {
+  if (isAgentTeamCommand(commandName)) {
+    return `Agent Team Session (${commandName})`;
+  }
+
+  return `Command Session (${commandName})`;
+}
+
+function deriveTitleFromTranscript(lines: ParsedLine[]): string | null {
+  for (const line of lines) {
+    if (line.message?.role !== "user") continue;
+
+    const commandName = extractCommandName(getMessageText(line.message.content));
+    if (commandName) {
+      return deriveCommandTitle(commandName);
+    }
+  }
+
+  const sampledUserText = lines
+    .filter((line) => line.message?.role === "user")
+    .slice(0, 8)
+    .map((line) => getMessageText(line.message?.content))
+    .join("\n");
+
+  if (
+    sampledUserText.includes("<teammate-message") ||
+    sampledUserText.includes("TeamCreate") ||
+    sampledUserText.includes("TaskCreate")
+  ) {
+    return "Agent Team Session";
+  }
+
+  return null;
+}
+
+function getIndexEntryTitle(entry: SessionIndexEntry): string {
+  const summary = entry.summary?.trim();
+  if (summary) {
+    return summary;
+  }
+
+  const customTitle = entry.customTitle?.trim();
+  if (customTitle) {
+    return customTitle;
+  }
+
+  const commandName = extractCommandName(entry.firstPrompt ?? "");
+  if (commandName) {
+    return deriveCommandTitle(commandName);
+  }
+
+  return "(no title)";
 }
 
 interface AggregatedSession {
@@ -271,7 +392,7 @@ function parseProjectFromIndex(
 
     aggregatedSessions.push({
       id: entry.sessionId,
-      title: entry.summary, // Always present from index!
+      title: getIndexEntryTitle(entry),
       timestamp: entry.created,
       durationMs: tokenData.durationMs,
       gitBranch: entry.gitBranch || null,
@@ -384,7 +505,9 @@ function parseMissingSession(
     if (lines.length === 0) return null;
 
     const summaryLine = lines.find((l) => l.type === "summary");
-    const title = summaryLine?.summary || "(no title)";
+    const summaryTitle = summaryLine?.summary?.trim();
+    const title =
+      summaryTitle || deriveTitleFromTranscript(lines) || "(no title)";
 
     const timestamps = lines
       .filter((l) => l.timestamp)
@@ -425,7 +548,10 @@ function parseMissingSession(
         tokens.cacheCreationTokens += usage.cache_creation_input_tokens || 0;
       }
 
-      if (line.message?.role === "assistant" && line.message.content) {
+      if (
+        line.message?.role === "assistant" &&
+        Array.isArray(line.message.content)
+      ) {
         for (const block of line.message.content) {
           if (block.type === "tool_use" && block.name) {
             toolUsage[block.name] = (toolUsage[block.name] || 0) + 1;
@@ -644,7 +770,8 @@ function parseSessionLegacy(
 
     // Extract summary/title
     const summaryLine = lines.find((l) => l.type === "summary");
-    const title = summaryLine?.summary || null;
+    const summaryTitle = summaryLine?.summary?.trim();
+    const title = summaryTitle || deriveTitleFromTranscript(lines) || null;
 
     // Extract timestamps
     const timestamps = lines
@@ -683,7 +810,10 @@ function parseSessionLegacy(
         tokens.cacheCreationTokens += usage.cache_creation_input_tokens || 0;
       }
 
-      if (line.message?.role === "assistant" && line.message.content) {
+      if (
+        line.message?.role === "assistant" &&
+        Array.isArray(line.message.content)
+      ) {
         for (const block of line.message.content) {
           if (block.type === "tool_use" && block.name) {
             toolUsage[block.name] = (toolUsage[block.name] || 0) + 1;

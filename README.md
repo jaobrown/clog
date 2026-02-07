@@ -1,3 +1,10 @@
+ ██████╗██╗      ██████╗  ██████╗
+██╔════╝██║     ██╔═══██╗██╔════╝
+██║     ██║     ██║   ██║██║  ███╗
+██║     ██║     ██║   ██║██║   ██║
+╚██████╗███████╗╚██████╔╝╚██████╔╝
+ ╚═════╝╚══════╝ ╚═════╝  ╚═════╝
+
 # clog
 
 Track and share your Claude Code usage.
@@ -51,7 +58,7 @@ Parses your sessions and pushes updated stats to your GitHub repo. The repo incl
 ```bash
 npx @jaobrown/clog redact [path]
 
-# Examples: `npx @jaobrown redact my-app` or `npx @jaobrown redact /Users/you/code/my-app`
+# Examples: `npx @jaobrown/clog redact my-app` or `npx @jaobrown/clog redact /Users/you/code/my-app`
 ```
 
 Marks a directory as redacted (defaults to the current directory). Redacted projects still count toward totals, but their project name and session titles are hidden:
