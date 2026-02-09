@@ -158,12 +158,20 @@ function buildPlist(binPath: string, logPath: string, cronExpr: string): string 
     .concat("      <string>sync</string>")
     .join("\n");
 
+  // Capture the current PATH so launchd can find node (nvm, fnm, volta, etc.)
+  const currentPath = process.env.PATH ?? "/usr/local/bin:/usr/bin:/bin";
+
   return `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
   <key>Label</key>
   <string>${PLIST_LABEL}</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>${currentPath}</string>
+  </dict>
   <key>ProgramArguments</key>
   <array>
 ${programArgs}
