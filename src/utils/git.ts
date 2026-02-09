@@ -2,6 +2,19 @@ import simpleGit from "simple-git";
 import * as fs from "fs";
 import * as path from "path";
 
+const DEFAULT_SYNC_PATHS = ["README.md", "data/latest.json"];
+
+function pathMatchesSyncTarget(filePath: string, targets: string[]): boolean {
+  return targets.some((target) => {
+    const normalizedTarget = target.replace(/\\/g, "/");
+    const normalizedFile = filePath.replace(/\\/g, "/");
+    return (
+      normalizedFile === normalizedTarget ||
+      normalizedFile.startsWith(`${normalizedTarget}/`)
+    );
+  });
+}
+
 export async function initRepo(repoPath: string): Promise<void> {
   const git = simpleGit(repoPath);
   await git.init();
@@ -9,16 +22,17 @@ export async function initRepo(repoPath: string): Promise<void> {
 
 export async function commitAndPush(
   repoPath: string,
-  message: string
+  message: string,
+  paths: string[] = DEFAULT_SYNC_PATHS
 ): Promise<void> {
   const git = simpleGit(repoPath);
 
-  // Stage all changes
-  await git.add(".");
+  // Stage generated artifacts only
+  await git.add(paths);
 
-  // Check if there are changes to commit
-  const status = await git.status();
-  if (status.files.length === 0) {
+  // Ensure we only commit when staged sync artifacts changed
+  const staged = await git.diff(["--cached", "--name-only"]);
+  if (!staged.trim()) {
     return;
   }
 
@@ -32,7 +46,9 @@ export async function commitAndPush(
 export async function hasChanges(repoPath: string): Promise<boolean> {
   const git = simpleGit(repoPath);
   const status = await git.status();
-  return status.files.length > 0;
+  return status.files.some((file) =>
+    pathMatchesSyncTarget(file.path, DEFAULT_SYNC_PATHS)
+  );
 }
 
 export function ensureDataDir(repoPath: string): void {

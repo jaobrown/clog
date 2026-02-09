@@ -52,7 +52,7 @@ npx @jaobrown/clog sync
 ```
 
 Parses your sessions and pushes updated stats to your GitHub repo. The repo includes:
-- `data/latest.json` - Full session data
+- `data/latest.json` - Public profile payload (summary, activity, project/session metadata used by clog.sh)
 - `README.md` - Formatted stats display
 
 ### Redact sensitive projects
@@ -63,7 +63,7 @@ npx @jaobrown/clog redact [path]
 # Examples: `npx @jaobrown/clog redact my-app` or `npx @jaobrown/clog redact /Users/you/code/my-app`
 ```
 
-Marks a directory as redacted (defaults to the current directory). Redacted projects still count toward totals, but their project name and session titles are hidden:
+Marks a directory as redacted (defaults to the current directory). Redacted projects still count toward totals, but their project name and session titles are hidden everywhere clog syncs data:
 - Project name: `top secret`
 - Session title: `**********`
 
@@ -77,6 +77,13 @@ clog reads Claude Code session files from `~/.claude/projects/`. Each session in
 - Token usage (input, output, cache)
 - Git branch and model used
 - Subagent activity
+
+When syncing to GitHub, clog publishes only profile/leaderboard data:
+- Summary totals and daily activity
+- Project names and session titles/timestamps/durations
+- Aggregated token usage, tool usage, and model breakdown
+
+It does not publish local project paths, per-session git branches/model IDs, message counts, or conversation content.
 
 ## Data storage
 

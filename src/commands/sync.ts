@@ -1,7 +1,7 @@
 import chalk from "chalk";
 import ora from "ora";
 import { readConfigWithDefaults, configExists } from "../utils/config.js";
-import { generateOutputData } from "../output/generator.js";
+import { generateOutputData, toPublicOutputData } from "../output/generator.js";
 import { generateReadme, getRecentSessions, getTopProjects } from "../output/readme.js";
 import { writeLatestJson, commitAndPush, hasChanges, writeReadme } from "../utils/git.js";
 import { formatDuration, formatNumber } from "../utils/format.js";
@@ -23,9 +23,10 @@ export async function runSync(): Promise<void> {
   try {
     // Generate output data
     const data = generateOutputData(config.username, config.redactedProjects);
+    const publicData = toPublicOutputData(data);
 
     spinner.text = "Writing latest.json...";
-    writeLatestJson(config.repoPath, data);
+    writeLatestJson(config.repoPath, publicData);
 
     // Generate README
     spinner.text = "Generating README...";
@@ -54,7 +55,10 @@ export async function runSync(): Promise<void> {
     // Commit and push
     spinner.text = "Pushing to GitHub...";
     const commitMessage = `📓 clog: ${formatNumber(data.summary.totalSessions)} sessions, ${formatDuration(data.summary.totalDurationMs)}`;
-    await commitAndPush(config.repoPath, commitMessage);
+    await commitAndPush(config.repoPath, commitMessage, [
+      "README.md",
+      "data/latest.json",
+    ]);
 
     spinner.succeed("Synced successfully");
 
