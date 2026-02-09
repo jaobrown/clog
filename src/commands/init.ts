@@ -13,7 +13,7 @@ import { runSync } from "./sync.js";
 import { fetchUserRank, syncProfileToConvex } from "../utils/api.js";
 import { renderBadge } from "../output/badge.js";
 import { copyToClipboard } from "../utils/clipboard.js";
-import { generateOutputData } from "../output/generator.js";
+import { generateOutputData, toPublicOutputData } from "../output/generator.js";
 
 function checkGhCli(): boolean {
   try {
@@ -235,6 +235,7 @@ export async function runInit(): Promise<void> {
     // Sync profile directly to Convex so it's immediately available
     const syncSpinner = ora("Syncing profile to leaderboard...").start();
     const data = generateOutputData(username, redactedProjects);
+    const publicData = toPublicOutputData(data);
 
     // Calculate weekly stats
     const now = new Date();
@@ -251,7 +252,7 @@ export async function runInit(): Promise<void> {
 
     let weeklyDurationMs = 0;
     let weeklySessionCount = 0;
-    for (const [dateStr, dayData] of Object.entries(data.activity)) {
+    for (const [dateStr, dayData] of Object.entries(publicData.activity)) {
       const date = new Date(dateStr + "T00:00:00Z");
       if (date >= startDate && date < endDate) {
         weeklyDurationMs += dayData.durationMs;
@@ -260,8 +261,8 @@ export async function runInit(): Promise<void> {
     }
 
     // Calculate streak info from activity
-    const activityDates = Object.keys(data.activity)
-      .filter((d) => data.activity[d].sessions > 0)
+    const activityDates = Object.keys(publicData.activity)
+      .filter((d) => publicData.activity[d].sessions > 0)
       .sort();
     const lastActiveDate =
       activityDates.length > 0
@@ -286,7 +287,7 @@ export async function runInit(): Promise<void> {
       currentStreak,
       longestStreak: currentStreak,
       lastActiveDate,
-      latestData: data,
+      latestData: publicData,
     });
 
     if (synced) {

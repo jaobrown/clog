@@ -58,6 +58,31 @@ export interface OutputData {
   currentStreak?: number;
 }
 
+export interface PublicSession {
+  id: string;
+  title: string | null;
+  timestamp: string;
+  totalDurationMs: number;
+}
+
+export interface PublicProject {
+  projectName: string;
+  totalSessions: number;
+  totalDurationMs: number;
+  sessions: PublicSession[];
+}
+
+export interface PublicOutputData {
+  generatedAt: string;
+  username: string;
+  summary: Summary;
+  projects: PublicProject[];
+  activity: Record<string, ActivityDay>;
+  tokenUsage?: TokenUsage;
+  toolUsage?: Record<string, number>;
+  modelBreakdown?: Record<string, ModelBreakdown>;
+}
+
 export interface ScheduleConfig {
   enabled: boolean;
   frequency: string;
