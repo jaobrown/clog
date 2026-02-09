@@ -58,10 +58,19 @@ export interface OutputData {
   currentStreak?: number;
 }
 
+export interface ScheduleConfig {
+  enabled: boolean;
+  frequency: string;
+  cronExpr: string;
+  lastSync: string | null;
+  logPath: string;
+}
+
 export interface Config {
   username: string;
   repoName: string;
   repoPath: string;
   createdAt: string;
   redactedProjects: string[];
+  schedule?: ScheduleConfig;
 }
