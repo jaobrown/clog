@@ -9,16 +9,28 @@
 
 Track and share your Claude Code usage.
 
-Clog parses your local Claude Code sessions and gives you stats on sessions, duration, tokens, and projects. Optionally sync to a public GitHub repo to share your coding activity.
-
-
+Clog parses your local Claude Code sessions and gives you stats on sessions, duration, tokens, and projects. Sync to a public GitHub repo, join the leaderboard at [clog.sh](https://clog.sh), and set up automatic background syncing.
 
 ## Requirements
 
 - Node.js 18+
 - [GitHub CLI](https://cli.github.com/) (`gh`) - for GitHub sync; required for [profile + leaderboard](https://clog.sh)
 
-## Usage
+## Quick Start
+
+```bash
+npx @jaobrown/clog init
+```
+
+That's it. `init` walks you through everything:
+1. Sets up your GitHub repo
+2. Optionally configures automatic background syncing
+3. Runs your first sync
+4. Shows your stats and leaderboard rank
+
+Your profile appears on [clog.sh](https://clog.sh) immediately.
+
+## Commands
 
 ### View local stats
 
@@ -34,18 +46,20 @@ Shows a summary of your Claude Code usage:
 - Top 5 projects by time spent
 - Recent sessions
 
-### Initialize GitHub sync
+### Initialize and sync
 
 ```bash
 npx @jaobrown/clog init
 ```
 
-Creates a public GitHub repository to sync your stats. You'll be prompted for:
+Creates a public GitHub repository, syncs your stats, and optionally sets up automatic background syncing. You'll be prompted for:
 - GitHub username
 - Repository name (default: `clog`)
 - Local repo path (default: `~/.clog/repo`)
+- Whether to redact any project directories
+- Whether to enable automatic background syncing
 
-### Sync to GitHub
+### Manual sync
 
 ```bash
 npx @jaobrown/clog sync
@@ -54,6 +68,26 @@ npx @jaobrown/clog sync
 Parses your sessions and pushes updated stats to your GitHub repo. The repo includes:
 - `data/latest.json` - Public profile payload (summary, activity, project/session metadata used by clog.sh)
 - `README.md` - Formatted stats display
+
+> **Tip:** If you set up automatic syncing during `init` or via `clog schedule`, you don't need to run this manually.
+
+### Automatic syncing
+
+```bash
+npx @jaobrown/clog schedule
+```
+
+Set up automatic background syncing so your stats stay up to date without manual effort. Choose how often to sync (1x to 12x per day, or a custom cron expression).
+
+Uses launchd on macOS and cron on Linux. Survives reboots.
+
+```bash
+npx @jaobrown/clog schedule status    # check current schedule
+npx @jaobrown/clog schedule stop      # disable syncing
+npx @jaobrown/clog schedule start     # re-enable syncing
+npx @jaobrown/clog schedule update    # change frequency
+npx @jaobrown/clog schedule logs      # view recent sync logs
+```
 
 ### Redact sensitive projects
 
@@ -67,7 +101,7 @@ Marks a directory as redacted (defaults to the current directory). Redacted proj
 - Project name: `top secret`
 - Session title: `**********`
 
-Tip: Redaction matches by full path, project name, or basename. If you used a path under `~/.claude/projects/`, use the real project directory (for example `/Users/you/code/my-app`) or just the project name (`npx @jaobrown redact my-app`).
+Tip: Redaction matches by full path, project name, or basename. If you used a path under `~/.claude/projects/`, use the real project directory (for example `/Users/you/code/my-app`) or just the project name (`npx @jaobrown/clog redact my-app`).
 
 ## How it works
 
@@ -90,11 +124,24 @@ It does not publish local project paths, per-session git branches/model IDs, mes
 - **Claude Code sessions**: `~/.claude/projects/`
 - **clog config**: `~/.claude/clog.json`
 - **Sync repo** (default): `~/.clog/repo/`
+- **Sync logs**: `~/.claude/clog-sync.log` (when schedule is active)
 
 ## FAQ
 
-**Can I redact sensitive data?**  
-Yes. Use `npx @jaobrown/clog redact [path]` to hide a project’s name and session titles in `clog stats`, the README, and `latest.json`. You can redact as many projects as you need.
+**How do I get started?**
+Run `npx @jaobrown/clog init` — it handles everything including your first sync.
+
+**How often should I sync?**
+Set up automatic syncing with `npx @jaobrown/clog schedule` and never think about it again. Choose anywhere from 1x to 12x per day. If you prefer manual control, run `npx @jaobrown/clog sync` whenever you want.
+
+**Can I redact sensitive data?**
+Yes. Use `npx @jaobrown/clog redact [path]` to hide a project's name and session titles in `clog stats`, the README, and `latest.json`. You can redact as many projects as you need. You can also set up redactions during `init`.
+
+**When will my profile appear on the leaderboard?**
+Your profile syncs to [clog.sh](https://clog.sh) immediately during `init`. After that, the leaderboard refreshes from GitHub hourly.
+
+**What data is shared?**
+Only aggregate stats: session counts, durations, tokens, project names, session titles/timestamps, activity history, and model/tool breakdowns. No conversation content, code, prompts, or local paths are ever shared.
 
 ## License
 
